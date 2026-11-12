@@ -105,7 +105,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
       case 'Admin Finansial':
         return ['Laporan Pendapatan & Omzet', 'Atur Tarif Dinamis', 'Transaksi Real-time', 'Dompet Saldo', 'Booking Tiket'];
       case 'Admin CS & KYC':
-        return ['Verifikasi Dokumen KYC', 'Profil Pelanggan CRM', 'Manajemen Akun User', 'Komplain & Feedback', 'Broadcast Promo', 'Arcade Poin'];
+        return ['Verifikasi Dokumen KYC', 'Profil Pelanggan CRM', 'Manajemen Akun User', 'Komplain & Feedback', 'Broadcast Promo'];
       default:
         return ['Akses Standar Admin'];
     }

@@ -4,10 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/session_service.dart';
 import '../../../core/services/currency_service.dart';
-import '../../../ui/layanan/layanan_blockchain.dart';
 import '../backend/profile_backend.dart';
 
 /// ISO/IEC 7810 ID-1 standard ATM card aspect ratio (85.60 mm × 53.98 mm ≈ 1.586 : 1)
@@ -335,50 +333,16 @@ class _MemberCardsCarouselDialogState extends State<MemberCardsCarouselDialog> {
 
     List<Map<String, dynamic>> loaded = [];
 
-    // SELALU ambil data fresh dari Supabase untuk menjamin tx_hash terbaru yang terdaftar di blockchain
+    // SELALU ambil data fresh dari Supabase agar kartu member selalu terbaru
     if (uid.isNotEmpty) {
       try {
         final res = await Supabase.instance.client
             .from('user_member_cards')
-            .select('id, card_tier, member_hash_code, tx_hash, is_active, unlocked_at')
+            .select('id, card_tier, member_hash_code, is_active, unlocked_at')
             .eq('user_id', uid)
             .order('created_at', ascending: true);
         if (res.isNotEmpty) {
           loaded = List<Map<String, dynamic>>.from(res);
-
-          // Cek apakah ada kartu yang belum terbit di blockchain on-chain (tx_hash kosong atau bukan 0x...)
-          for (int i = 0; i < loaded.length; i++) {
-            final card = loaded[i];
-            final tx = card['tx_hash']?.toString() ?? '';
-            final tier = card['card_tier']?.toString() ?? 'regular';
-            final hash = card['member_hash_code']?.toString() ?? '';
-            final cardId = card['id']?.toString() ?? '';
-
-            // Jika belum ada tx_hash on-chain ril, broadcast langsung via smart contract Sepolia
-            if (tx.isEmpty || !tx.startsWith('0x') || tx.length != 66) {
-              LayananBlockchain.instance
-                  .broadcastMemberCardOnChain(
-                    userUuid: uid,
-                    tier: tier,
-                    memberHashCode: hash,
-                  )
-                  .then((realTxHash) {
-                if (realTxHash != null && realTxHash.isNotEmpty && cardId.isNotEmpty) {
-                  Supabase.instance.client
-                      .from('user_member_cards')
-                      .update({'tx_hash': realTxHash})
-                      .eq('id', cardId)
-                      .then((_) {
-                    if (mounted) {
-                      setState(() {
-                        loaded[i]['tx_hash'] = realTxHash;
-                      });
-                    }
-                  });
-                }
-              });
-            }
-          }
         }
       } catch (err) {
         debugPrint('[MemberCardDialog] Error fetch user_member_cards: $err');
@@ -465,13 +429,11 @@ class _MemberCardsCarouselDialogState extends State<MemberCardsCarouselDialog> {
                 final c = _cards[index];
                 final cardTier = c['card_tier']?.toString() ?? 'BRONZE';
                 final memberCode = c['member_hash_code']?.toString() ?? widget.initialMemberCode;
-                final txHash = c['tx_hash']?.toString();
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
                   child: MemberAtmCard(
                     tier: cardTier,
                     memberCode: memberCode,
-                    blockchainCode: txHash,
                   ),
                 );
               },
@@ -538,13 +500,11 @@ class _MemberCardsCarouselDialogState extends State<MemberCardsCarouselDialog> {
 class MemberAtmCard extends StatelessWidget {
   final String tier;
   final String memberCode;
-  final String? blockchainCode;
 
   const MemberAtmCard({
     super.key,
     required this.tier,
     required this.memberCode,
-    this.blockchainCode,
   });
 
   @override
@@ -563,40 +523,9 @@ class MemberAtmCard extends StatelessWidget {
       theme = _CardTheme.bronze;
     }
 
-    // 1. Kode Hash Transaksi Kartu Member (tx_hash yang bisa diverifikasi di Etherscan)
-    // Utamakan tx_hash transaksi blockchain unik (0x... 66 hex) milik user & tier ini.
-    // Jika tx_hash belum ada, gunakan member_hash_code unik.
-    final String cardDisplayCode;
-    final String fullBlockchainCode;
-
-    if (blockchainCode != null &&
-        blockchainCode!.trim().isNotEmpty &&
-        blockchainCode!.trim().startsWith('0x') &&
-        blockchainCode!.trim() != '#----') {
-      fullBlockchainCode = blockchainCode!.trim();
-      cardDisplayCode = fullBlockchainCode;
-    } else if (memberCode.trim().isNotEmpty && memberCode.trim() != '#----') {
-      fullBlockchainCode = memberCode.trim();
-      cardDisplayCode = memberCode.trim();
-    } else {
-      fullBlockchainCode = LayananBlockchain.alamatKontrakHex;
-      cardDisplayCode = fullBlockchainCode;
-    }
-
-    // Format tampilan kartu: jika hash blockchain panjang (0x...), potong 12 karakter + "..."
-    final String displayBlockchainCode = cardDisplayCode.startsWith('0x') && cardDisplayCode.length > 12
-        ? '${cardDisplayCode.substring(0, 12)}...'
-        : cardDisplayCode;
-
-    // Link web verifikasi Sepolia Etherscan (Prioritas /tx/ untuk hash transaksi 66 karakter)
-    final String verifyUrl;
-    if (fullBlockchainCode.startsWith('0x') && fullBlockchainCode.length == 66) {
-      verifyUrl = 'https://sepolia.etherscan.io/tx/$fullBlockchainCode';
-    } else if (fullBlockchainCode.startsWith('0x') && fullBlockchainCode.length == 42) {
-      verifyUrl = 'https://sepolia.etherscan.io/address/$fullBlockchainCode';
-    } else {
-      verifyUrl = 'https://sepolia.etherscan.io/tx/$fullBlockchainCode';
-    }
+    // Kode hash kartu member (member_hash_code dari database)
+    final String cardDisplayCode =
+        (memberCode.trim().isNotEmpty && memberCode.trim() != '#----') ? memberCode.trim() : '#----';
 
     return AspectRatio(
       aspectRatio: kAtmCardAspectRatio,
@@ -744,7 +673,7 @@ class MemberAtmCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                displayBlockchainCode,
+                                cardDisplayCode,
                                 style: GoogleFonts.spaceMono(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -761,7 +690,7 @@ class MemberAtmCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 6),
                               GestureDetector(
-                                onTap: () => _copyAndConfirmVerification(context, fullBlockchainCode, verifyUrl),
+                                onTap: () => _copyCode(context, cardDisplayCode),
                                 behavior: HitTestBehavior.opaque,
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
@@ -787,184 +716,19 @@ class MemberAtmCard extends StatelessWidget {
     );
   }
 
-  Future<void> _copyAndConfirmVerification(BuildContext context, String code, String verifyUrl) async {
-    // Salin versi full kode blockchain ke papan klip
+  Future<void> _copyCode(BuildContext context, String code) async {
     await Clipboard.setData(ClipboardData(text: code));
     HapticFeedback.lightImpact();
 
     if (!context.mounted) return;
-
-    // Tampilkan pop-up konfirmasi smooth dengan layar belakang digelapkan
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'VerifikasiDialog',
-      barrierColor: Colors.black.withValues(alpha: 0.78), // Layar belakang digelapkan
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (dialogContext, anim1, anim2) {
-        return Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: 320,
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: const Color(0xFF334155),
-                  width: 1.2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.7),
-                    blurRadius: 32,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Icon Header
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444).withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.verified_rounded,
-                      color: Color(0xFFEF4444),
-                      size: 32,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Judul Pop-up
-                  Text(
-                    'Mau Verifikasi Kode?',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Subtitle informatif
-                  Text(
-                    'Kode blockchain telah berhasil disalin. Buka browser sekarang untuk memverifikasi kode ini di Etherscan Sepolia?',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF94A3B8),
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-
-                  // 2 Tombol Kanan-Kiri (Kiri: Tidak, Kanan: Ya Warna Merah)
-                  Row(
-                    children: [
-                      // Tombol Kiri: Tidak
-                      Expanded(
-                        child: SizedBox(
-                          height: 42,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.of(dialogContext).pop(),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white70,
-                              side: const BorderSide(color: Color(0xFF334155), width: 1.2),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              'Tidak',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFFCBD5E1),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Tombol Kanan: Ya (Warna Merah)
-                      Expanded(
-                        child: SizedBox(
-                          height: 42,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              Navigator.of(dialogContext).pop();
-                              try {
-                                final uri = Uri.parse(verifyUrl);
-                                final launched = await launchUrl(
-                                  uri,
-                                  mode: LaunchMode.externalApplication,
-                                );
-                                if (!launched) {
-                                  await launchUrl(
-                                    uri,
-                                    mode: LaunchMode.platformDefault,
-                                  );
-                                }
-                              } catch (err) {
-                                debugPrint('[MemberCardDialog] launchUrl external error: $err');
-                                try {
-                                  final uri = Uri.parse(verifyUrl);
-                                  await launchUrl(
-                                    uri,
-                                    mode: LaunchMode.inAppWebView,
-                                  );
-                                } catch (e) {
-                                  debugPrint('[MemberCardDialog] launchUrl inAppWebView error: $e');
-                                }
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFEF4444), // Warna Merah sesuai permintaan user
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              'Ya',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-      transitionBuilder: (dialogContext, anim1, anim2, child) {
-        final curved = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.88, end: 1.0).animate(curved),
-          child: FadeTransition(
-            opacity: anim1,
-            child: child,
-          ),
-        );
-      },
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Kode kartu member disalin'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 

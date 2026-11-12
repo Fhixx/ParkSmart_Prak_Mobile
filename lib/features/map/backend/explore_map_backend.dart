@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/services/currency_service.dart';
+import '../../../core/services/currency_service.dart';
 
 /// Backend khusus untuk ExploreMapScreen (lib/features/map/explore_map_screen.dart)
 /// Menggunakan Targeted Column Query (NO SELECT *) untuk performa peta yang cepat & lancar

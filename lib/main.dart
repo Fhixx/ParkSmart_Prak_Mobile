@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/services/notification_service.dart';
@@ -33,6 +34,15 @@ void main() async {
 
   if (!dotenv.isInitialized) {
     dotenv.loadFromString(envString: '');
+  }
+
+  // 1b. Inisialisasi Hive (Local Storage) & buka box 'favorites' untuk fitur Parkir Favorit.
+  // Box dibuka di awal agar data favorit langsung tersedia secara offline.
+  try {
+    await Hive.initFlutter();
+    await Hive.openBox('favorites');
+  } catch (e) {
+    debugPrint('Gagal inisialisasi Hive: $e');
   }
 
   // 2. Inisialisasi Supabase murni dari .env (tanpa hardcode di source code)

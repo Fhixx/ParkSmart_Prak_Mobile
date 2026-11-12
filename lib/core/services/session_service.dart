@@ -12,8 +12,6 @@ import '../../features/home/backend/home_backend.dart';
 import '../../features/history/backend/history_backend.dart';
 import '../../features/history/backend/verified_parking_sessions_backend.dart';
 import '../../features/notification/backend/notification_backend.dart';
-import '../../features/game/backend/car_game_backend.dart';
-import '../../features/game/backend/claws_car_backend.dart';
 import '../../main.dart' show navigatorKey;
 
 // ============================================================================
@@ -423,12 +421,6 @@ class SessionService with WidgetsBindingObserver {
     } catch (_) {}
     try {
       NotificationBackend.instance.clear();
-    } catch (_) {}
-    try {
-      CarGameBackend.instance.clear();
-    } catch (_) {}
-    try {
-      ClawsCarBackend.instance.clear();
     } catch (_) {}
   }
 

@@ -552,14 +552,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
                 ),
                 const Divider(height: 20, color: Color(0xFFF1EEE7)),
                 _buildModularToggleRow(
-                  'ai',
-                  'Engine AI Assistant',
-                  'Jika aktif, layanan asisten chat AI dimatikan sementara. Fitur jelajah dan booking tetap berjalan.',
-                  Icons.smart_toy_outlined,
-                  const Color(0xFF6D28D9),
-                ),
-                const Divider(height: 20, color: Color(0xFFF1EEE7)),
-                _buildModularToggleRow(
                   'kyc',
                   'Modul Wajib KYC KTP',
                   'Jika aktif, modul verifikasi identitas KTP dinonaktifkan sementara untuk pembaharuan.',

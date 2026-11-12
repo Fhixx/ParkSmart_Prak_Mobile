@@ -6,7 +6,6 @@ import '../core/services/theme_service.dart';
 import 'admin/super_admin/admin_dashboard_screen.dart';
 import 'admin/super_admin/admin_user_management_screen.dart';
 import 'admin/super_admin/admin_app_settings_screen.dart';
-import 'admin/super_admin/admin_ai_config_screen.dart';
 
 // Admin - Operations
 import 'admin/operations/admin_operations_dashboard_screen.dart';
@@ -31,10 +30,7 @@ import 'admin/super_admin/admin_kyc_screen.dart';
 import 'admin/cs/admin_customer_profiles_screen.dart';
 import 'admin/cs/admin_feedback_screen.dart';
 import 'admin/cs/admin_notifications_screen.dart';
-import 'admin/super_admin/admin_arcade_screen.dart';
 
-// AI Assistant
-import 'ai_assistant/ai_assistant_screen.dart';
 
 // Auth
 import 'auth/login_screen.dart';
@@ -83,12 +79,8 @@ import 'notification/notification_screen.dart';
 import 'parking/parking_detail_screen.dart';
 import 'map/explore_map_screen.dart';
 
-// Navigation & Games
+// Navigation
 import 'navigation/ar_navigation_screen.dart';
-import 'game/game_lobby_screen.dart';
-import 'game/game_list_screen.dart';
-import 'game/car_game_screen.dart';
-import 'game/claws_car_screen.dart';
 
 class SitemapScreen extends StatelessWidget {
   const SitemapScreen({super.key});
@@ -150,10 +142,7 @@ class SitemapScreen extends StatelessWidget {
                 _Item('Detail Riwayat Parkir', 'history_detail_screen.dart', (c) => const HistoryDetailScreen()),
                 _Item('Sesi Parkir Terverifikasi', 'verified_parking_sessions_screen.dart', (c) => const VerifiedParkingSessionsScreen()),
               ], isDark, theme),
-              _buildCategory('6. AI Assistant (ParkSmart AI)', [
-                _Item('Asisten Suara & Chat ParkSmart AI', 'ai_assistant_screen.dart', (c) => const AiAssistantScreen()),
-              ], isDark, theme),
-              _buildCategory('7. Profil Pengguna & Keamanan', [
+              _buildCategory('6. Profil Pengguna & Keamanan', [
                 _Item('Profil Pengguna Utama', 'profile_screen.dart', (c) => const ProfileScreen()),
                 _Item('Edit Profil Lengkap', 'edit_profile_screen.dart', (c) => const EditProfileScreen(), isNew: true),
                 _Item('Pengaturan PIN Transaksi', 'pin_settings_screen.dart', (c) => const PinSettingsScreen(), isNew: true),
@@ -165,7 +154,7 @@ class SitemapScreen extends StatelessWidget {
                 _Item('Metode Pembayaran & Saldo', 'payment_methods_screen.dart', (c) => const PaymentMethodsScreen()),
                 _Item('Kirim Ulasan & Pengalaman Parkir', 'feedback_screen.dart', (c) => const FeedbackScreen()),
               ], isDark, theme),
-              _buildCategory('8. Kendaraan & Kamera Scanner', [
+              _buildCategory('7. Kendaraan & Kamera Scanner', [
                 _Item('Daftar Kendaraan Terdaftar', 'vehicle_screen.dart', (c) => const VehicleScreen()),
                 _Item('Tambah Kendaraan Baru', 'add_vehicle_screen.dart', (c) => const AddVehicleScreen()),
                 _Item('Kamera Pindai Plat & STNK', 'custom_camera_screen.dart', (c) => const CustomCameraScreen(), isNew: true),
@@ -173,12 +162,6 @@ class SitemapScreen extends StatelessWidget {
                 _Item('Smart Scanner ML Kit (AI Vision / Barcode)', 'smart_scanner.dart', null, onAction: (ctx) {
                   SmartScanner.openCameraAndProcess(ctx);
                 }, isNew: true),
-              ], isDark, theme),
-              _buildCategory('9. Arcade & Mini Games', [
-                _Item('Lobi Game (Arcade Hub)', 'game_lobby_screen.dart', (c) => const GameLobbyScreen()),
-                _Item('Daftar Mini-Game Terpilih', 'game_list_screen.dart', (c) => const GameListScreen(), isNew: true),
-                _Item('Car Game (Parkir 2D Runner)', 'car_game_screen.dart', (c) => const CarGameScreen()),
-                _Item('Claws Car (Mesin Capit Hadiah 3D)', 'claws_car_screen.dart', (c) => const ClawsCarScreen(), isNew: true),
               ], isDark, theme),
 
               // ─── ADMIN HEADER DIVIDER & ROLE GUIDE ───
@@ -255,17 +238,15 @@ class SitemapScreen extends StatelessWidget {
               ),
 
               // ─── ADMIN CLUSTER 1: SISTEM & SUPER ADMIN ───
-              _buildCategory('10. Admin: Sistem & Super Admin', [
+              _buildCategory('8. Admin: Sistem & Super Admin', [
                 _Item('Dashboard Utama Admin', 'super_admin/admin_dashboard_screen.dart', (c) => const DashboardScreen(), role: 'Super Admin'),
                 _Item('Verifikasi Dokumen KTP (KYC)', 'super_admin/admin_kyc_screen.dart', (c) => const AdminKycScreen(), role: 'Super Admin'),
                 _Item('Manajemen Akun Admin (RBAC)', 'super_admin/admin_user_management_screen.dart', (c) => const AdminUserManagementScreen(), role: 'Super Admin'),
                 _Item('Pengaturan Parameter Global App', 'super_admin/admin_app_settings_screen.dart', (c) => const AdminAppSettingsScreen(), role: 'Super Admin'),
-                _Item('Konfigurasi Engine & Model AI', 'super_admin/admin_ai_config_screen.dart', (c) => const AdminAiConfigScreen(), role: 'Super Admin'),
-                _Item('Pengaturan Poin, Arcade & Hadiah', 'super_admin/admin_arcade_screen.dart', (c) => const ArcadeAdminScreen(), role: 'Super Admin'),
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 2: OPERASIONAL & FASILITAS ───
-              _buildCategory('11. Admin: Operasional & Fasilitas Parkir', [
+              _buildCategory('9. Admin: Operasional & Fasilitas Parkir', [
                 _Item('Dashboard Khusus Operasional', 'operations/admin_operations_dashboard_screen.dart', (c) => const AdminOperationsDashboardScreen(), role: 'Operations', isNew: true),
                 _Item('Kelola Titik Parkir, Denah & Tarif', 'operations/manage_parking_screen.dart', (c) => const ManageParkingScreen(), role: 'Operations'),
                 _Item('Monitoring Kendaraan Aktif & Overstay', 'operations/admin_active_users_screen.dart', (c) => const ActiveUsersScreen(), role: 'Operations'),
@@ -274,7 +255,7 @@ class SitemapScreen extends StatelessWidget {
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 3: FINANSIAL & TRANSAKSI ───
-              _buildCategory('12. Admin: Finansial, Billing & Pendapatan', [
+              _buildCategory('10. Admin: Finansial, Billing & Pendapatan', [
                 _Item('Dashboard Khusus Finansial', 'finance/admin_finance_dashboard_screen.dart', (c) => const AdminFinanceDashboardScreen(), role: 'Finance', isNew: true),
                 _Item('Konfigurasi Tarif & Aturan Waktu', 'finance/admin_pricing_screen.dart', (c) => const PricingScreen(), role: 'Finance'),
                 _Item('Injeksi Saldo & Wallet Admin', 'finance/admin_wallet_screen.dart', (c) => const AdminWalletScreen(), role: 'Finance'),
@@ -285,7 +266,7 @@ class SitemapScreen extends StatelessWidget {
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 4: LAYANAN PELANGGAN (CS) ───
-              _buildCategory('13. Admin: Layanan Pelanggan (Customer Service)', [
+              _buildCategory('11. Admin: Layanan Pelanggan (Customer Service)', [
                 _Item('Dashboard Khusus CS', 'cs/admin_cs_dashboard_screen.dart', (c) => const AdminCsDashboardScreen(), role: 'CS', isNew: true),
                 _Item('Profil Customer & Riwayat CRM', 'cs/admin_customer_profiles_screen.dart', (c) => const AdminCustomerProfilesScreen(), role: 'CS'),
                 _Item('Review Feedback & Keluhan Pengguna', 'cs/admin_feedback_screen.dart', (c) => const FeedbackAdminScreen(), role: 'CS'),

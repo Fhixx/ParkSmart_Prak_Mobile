@@ -4,8 +4,8 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../core/services/parking_image_service.dart';
-import '../../../../core/services/app_image_cache_service.dart';
+import '../../../core/services/parking_image_service.dart';
+import '../../../core/services/app_image_cache_service.dart';
 import 'backend/manage_parking_backend.dart';
 
 class ManageParkingScreen extends StatefulWidget {

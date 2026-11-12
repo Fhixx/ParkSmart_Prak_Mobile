@@ -14,7 +14,6 @@ import 'backend/admin_kyc_backend.dart';
 // Screens for Super Admin Core Governance
 import 'admin_user_management_screen.dart';
 import 'admin_app_settings_screen.dart';
-import 'admin_ai_config_screen.dart';
 import '../cs/admin_notifications_screen.dart';
 import '../../../core/services/maintenance_service.dart';
 import '../../../core/services/client_info_service.dart';
@@ -22,7 +21,6 @@ import '../../../core/services/session_service.dart';
 
 import 'admin_kyc_screen.dart';
 import 'admin_kyc_detail_modal.dart';
-import 'admin_arcade_screen.dart';
 import '../../auth/login_screen.dart';
 
 typedef DashboardScreen = AdminDashboardScreen;
@@ -819,10 +817,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
               // Fitur 1: Emergency Maintenance Mode Toggle
               _buildMaintenanceSwitchCard(context),
-              const SizedBox(height: 12),
-
-              // Fitur 2: Konfigurasi Engine AI (Gemini / GPT)
-              _buildAiConfigCard(context),
               const SizedBox(height: 24),
 
               // ─── SECTION 4: AUDIT TRAIL LOG ADMIN DENGAN KONTROL PANGKAS LOG ───
@@ -944,22 +938,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAppSettingsScreen()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.smart_toy_outlined, color: Color(0xFF0F766E)),
-            title: Text('Konfigurasi AI Engine', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAiConfigScreen()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.videogame_asset_outlined, color: Color(0xFF0D9488)),
-            title: Text('Pengaturan Poin, Arcade & Hadiah', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ArcadeAdminScreen()));
             },
           ),
           ListTile(
@@ -1404,75 +1382,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             label: Text('Atur Pesan Maintenance & Modul Global', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Color(0xFF114177)),
-              minimumSize: const Size(double.infinity, 42),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // FITUR INTI 3: KONFIGURASI GROQ AI ENGINE
-  Widget _buildAiConfigCard(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE4DFD5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF55036).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.bolt, color: Color(0xFFF55036), size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Konfigurasi Groq AI Key', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                    Text('Provider: Groq Cloud LPU™ • Model: Qwen 2.5', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9F9F9),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Model Aktif:', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                const SizedBox(height: 2),
-                Text('Qwen 2.5 (qwen/qwen3.8-27b)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFF55036))),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAiConfigScreen())),
-            icon: const Icon(Icons.vpn_key_outlined, size: 16, color: Colors.white),
-            label: Text('Atur Groq API Key', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF55036),
               minimumSize: const Size(double.infinity, 42),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),

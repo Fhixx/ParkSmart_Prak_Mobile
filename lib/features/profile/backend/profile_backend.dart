@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/session_service.dart';
-import '../../../ui/layanan/layanan_blockchain.dart';
 
 /// Backend khusus untuk ProfileScreen (lib/features/profile/profile_screen.dart)
 class ProfileBackend extends ChangeNotifier {
@@ -186,7 +185,7 @@ class ProfileBackend extends ChangeNotifier {
 
         if (_memberTier != expectedTier && _userId.isNotEmpty) {
           _memberTier = expectedTier;
-          // Panggil update agar trigger database menerbitkan kartu & hash code blockchain baru
+          // Panggil update agar trigger database menerbitkan kartu & hash code member baru
           try {
             await _client.from('users').update({
               'total_spent': _totalSpent,
@@ -240,7 +239,7 @@ class ProfileBackend extends ChangeNotifier {
           if (_userId.isNotEmpty) {
             final cardsRes = await _client
                 .from('user_member_cards')
-                .select('id, card_tier, member_hash_code, tx_hash, is_active, unlocked_at')
+                .select('id, card_tier, member_hash_code, is_active, unlocked_at')
                 .eq('user_id', _userId)
                 .order('created_at', ascending: true);
 
@@ -256,32 +255,6 @@ class ProfileBackend extends ChangeNotifier {
               allowedTiers.add('platinum');
             }
             _userCards = allCards.where((c) => allowedTiers.contains((c['card_tier'] ?? '').toString().toLowerCase())).toList();
-
-            // Verifikasi latar belakang: pastikan kartu aktif pengguna memiliki tx_hash valid di Sepolia
-            for (final c in _userCards) {
-              final tx = c['tx_hash']?.toString() ?? '';
-              final tier = c['card_tier']?.toString() ?? 'regular';
-              final hash = c['member_hash_code']?.toString() ?? '';
-              final cardId = c['id']?.toString() ?? '';
-
-              if (tx.isEmpty || !tx.startsWith('0x') || tx.length != 66) {
-                LayananBlockchain.instance
-                    .broadcastMemberCardOnChain(
-                      userUuid: _userId,
-                      tier: tier,
-                      memberHashCode: hash,
-                    )
-                    .then((newTx) {
-                  if (newTx != null && newTx.isNotEmpty && cardId.isNotEmpty) {
-                    _client
-                        .from('user_member_cards')
-                        .update({'tx_hash': newTx})
-                        .eq('id', cardId)
-                        .then((_) => notifyListeners());
-                  }
-                });
-              }
-            }
           }
         } catch (err) {
           debugPrint('[ProfileBackend] Error query user_member_cards: $err');

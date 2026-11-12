@@ -753,7 +753,12 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                     isDark: isDark,
                                     onTap: () async {
                                       if (currentLocId == null || currentLocId.isEmpty) return;
-                                      final added = await FavoriteBackend.instance.toggleFavorite(currentLocId);
+                                      // Data lokasi ikut disimpan ke penyimpanan lokal (Hive) agar favorit bisa dibuka offline
+                                      final detail = backend.locationDetail;
+                                      final added = await FavoriteBackend.instance.toggleFavorite(
+                                        currentLocId,
+                                        location: (detail != null && detail['id']?.toString() == currentLocId) ? detail : null,
+                                      );
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
                                         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/services/session_service.dart';
-import '../../../../core/services/currency_service.dart';
+import '../../../core/services/session_service.dart';
+import '../../../core/services/currency_service.dart';
 import '../../profile/backend/profile_backend.dart';
 import '../../profile/backend/vehicle_backend.dart';
 

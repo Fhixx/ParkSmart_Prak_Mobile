@@ -28,7 +28,6 @@ import '../../theme/app_shadows.dart';
 import '../../theme/app_spacing.dart';
 import '../map/explore_map_screen.dart';
 import '../profile/backend/vehicle_backend.dart';
-import '../game/game_lobby_screen.dart' as game;
 import 'backend/home_backend.dart';
 import '../../core/services/session_service.dart';
 import '../../core/services/currency_service.dart';
@@ -1847,15 +1846,6 @@ class _CategoryListState extends State<_CategoryList> {
                 tealIcon: true,
                 active: selected == 'Parkir EV',
                 onTap: () => HomeBackend.instance.setFilterCategory('Parkir EV'),
-              ),
-              _CategoryPill(
-                label: 'Games'.tr, 
-                icon: Icons.sports_esports, 
-                tealIcon: true,
-                active: selected == 'Games',
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const game.GameLobbyScreen()));
-                },
               ),
             ],
           ),
