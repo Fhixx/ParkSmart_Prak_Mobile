@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../features/home/home_screen.dart';
 import '../features/history/history_screen.dart';
 import '../features/profile/profile_screen.dart';
-import '../features/camera/smart_scanner.dart';
+import '../features/favorite/favorite_screen.dart';
 
 enum DockTab { home, history, profile }
 
@@ -42,16 +42,16 @@ class BottomDockNavigation extends StatelessWidget {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HistoryScreen()));
             }
           }),
-          // Center: Scan/focus rounded-2xl
+          // Center: Favorit (rounded-2xl)
           GestureDetector(
-            onTap: () => SmartScanner.openCameraAndProcess(context),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoriteScreen())),
             child: Container(
               width: 48, height: 48,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.filter_center_focus, size: 24, color: Colors.white),
+              child: const Icon(Icons.favorite_border, size: 24, color: Colors.white),
             ),
           ),
           _buildIcon(context, Icons.person_outline, DockTab.profile, () {
