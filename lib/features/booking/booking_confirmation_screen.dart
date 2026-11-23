@@ -43,6 +43,11 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     super.dispose();
   }
 
+  // ============================================================================
+  // [SISA WAKTU HOLD DI LAYAR KONFIRMASI]
+  // Fungsi ini menghitung sisa detik = 179 - (sekarang - created_at). `.clamp(0, 179)` menjaga
+  // nilai tidak negatif. Jika batas bayar diubah, ganti ketiga angka 179 (lihat panduan di history_backend.dart).
+  // ============================================================================
   int _getRemainingSeconds(DateTime? createdAt) {
     if (createdAt == null) return 179;
     final diff = DateTime.now().difference(createdAt).inSeconds;

@@ -6,16 +6,11 @@ import '../../../core/services/currency_service.dart';
 import '../../home/backend/home_backend.dart';
 import '../../profile/backend/profile_backend.dart';
 
-/// Backend khusus untuk FavoriteScreen (lib/features/favorite/favorite_screen.dart)
-///
-/// PENYIMPANAN LOKAL (Local Storage) menggunakan Hive — mengacu pada Modul 6.
+/// Backend khusus untuk FavoriteScreen 
 /// Data favorit disimpan di memori internal perangkat (Box 'favorites'),
-/// sehingga tetap ada saat aplikasi ditutup dan bisa dibuka tanpa internet.
-///
 /// Struktur data di dalam Box:
 ///   key   : '<userId>::<locationId>'   (favorit dipisah per akun, seperti sebelumnya)
 ///   value : Map berisi salinan (snapshot) data lokasi parkir saat difavoritkan
-///
 /// Operasi CRUD:
 ///   Create -> toggleFavorite()   (box.put)
 ///   Read   -> fetchFavorites()   (box.keys / box.get)
@@ -39,14 +34,12 @@ class FavoriteBackend extends ChangeNotifier {
   List<Map<String, dynamic>> _favorites = [];
   List<Map<String, dynamic>> get favorites => _favorites;
 
-  /// Membuka Box Hive (jika belum terbuka). Box normalnya sudah dibuka di main.dart.
+
   Future<Box<dynamic>> _openBox() async {
     if (Hive.isBoxOpen(boxName)) return Hive.box(boxName);
     return Hive.openBox(boxName);
   }
 
-  /// User ID aktif (dibaca dari memori, tanpa internet).
-  /// Jika belum ada yang login, dipakai 'guest' agar fitur tetap berjalan.
   String _resolveUserId() {
     final profileId = ProfileBackend.instance.userId;
     if (profileId.isNotEmpty) return profileId;
@@ -62,15 +55,13 @@ class FavoriteBackend extends ChangeNotifier {
 
   String _key(String userId, String locationId) => '$userId::$locationId';
 
-  /// Cek apakah suatu tempat parkir merupakan favorit user yang sedang aktif.
-  /// Membaca langsung dari Box (sinkron & cepat), jadi selalu akurat walau akun berganti.
+  
   bool isFavorite(String? locationId) {
     if (locationId == null || locationId.isEmpty) return false;
     if (!Hive.isBoxOpen(boxName)) return _favoriteLocationIds.contains(locationId);
     return Hive.box(boxName).containsKey(_key(_resolveUserId(), locationId));
   }
 
-  /// READ: memuat daftar parkir favorit milik user aktif dari penyimpanan lokal.
   Future<void> fetchFavorites() async {
     _isLoading = true;
     try {
@@ -86,7 +77,6 @@ class FavoriteBackend extends ChangeNotifier {
         rows.add(row);
       }
 
-      // Favorit terbaru tampil paling atas
       rows.sort((a, b) {
         final ta = (a['saved_at'] as num?)?.toInt() ?? 0;
         final tb = (b['saved_at'] as num?)?.toInt() ?? 0;
@@ -105,13 +95,21 @@ class FavoriteBackend extends ChangeNotifier {
     }
   }
 
+  // ============================================================================
+  // [BAH ISI / STRUKTUR FAVORIT LOKAL (HIVE)]
+  // - Nama box: `boxName = 'favorites'` (dibuka di main.dart: Hive.openBox('favorites'); samakan jika diganti).
+  // - Key tiap item: '$userId::$locationId' (fungsi _key) -> favorit terpisah per akun, bukan per perangkat.
+  // - Menambah field baru (mis. 'phone'): tambahkan di _buildRecord (simpan) dan _toDisplayMap (tampil).
+  //   Data lama di perangkat tidak punya field baru; beri nilai default agar tidak null.
+  // - CRUD: Create/Delete = toggleFavorite, Read = fetchFavorites & isFavorite, Delete eksplisit = removeFavorite.
+  // - Cek hasil di HP: data tersimpan lokal, jadi favorit tetap tampil saat mode pesawat.
+  // ============================================================================
   /// CREATE / DELETE: toggle status favorit.
-  /// Tambah jika belum ada, hapus jika sudah ada.
-  ///
+  
   /// [location] adalah data lokasi parkir (baris `parking_locations`) yang akan
   /// disalin ke penyimpanan lokal, supaya favorit bisa tampil tanpa internet.
-  ///
-  /// Mengembalikan `true` jika sekarang jadi favorit, `false` jika dihapus.
+  
+
   Future<bool> toggleFavorite(String locationId, {Map<String, dynamic>? location}) async {
     try {
       final box = await _openBox();
@@ -140,7 +138,7 @@ class FavoriteBackend extends ChangeNotifier {
     }
   }
 
-  /// DELETE: menghapus lokasi dari daftar favorit.
+
   Future<void> removeFavorite(String locationId) async {
     try {
       final box = await _openBox();
@@ -153,8 +151,7 @@ class FavoriteBackend extends ChangeNotifier {
     }
   }
 
-  /// Membuat data yang disimpan ke Box (hanya tipe dasar: String, num, bool, List).
-  /// LatLng tidak disimpan langsung, melainkan sebagai latitude & longitude.
+ 
   Map<String, dynamic> _buildRecord(String userId, String locationId, Map<String, dynamic>? location) {
     final src = location ?? const <String, dynamic>{};
 
@@ -184,7 +181,7 @@ class FavoriteBackend extends ChangeNotifier {
     return record;
   }
 
-  /// Mengubah data dari Box menjadi format yang dipakai FavoriteScreen.
+
   Map<String, dynamic> _toDisplayMap(Map<String, dynamic> row) {
     final lat = (row['latitude'] as num?)?.toDouble() ?? -6.1788;
     final lng = (row['longitude'] as num?)?.toDouble() ?? 106.7916;

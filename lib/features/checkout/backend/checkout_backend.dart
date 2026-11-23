@@ -7,8 +7,7 @@ import '../../home/backend/home_backend.dart';
 import '../../profile/backend/profile_backend.dart';
 import '../../profile/backend/payment_methods_backend.dart';
 
-/// Backend khusus untuk CheckoutScreen (lib/features/checkout/checkout_screen.dart)
-/// Menggunakan Targeted Column Query (NO SELECT *) untuk keamanan & efisiensi
+
 class CheckoutBackend extends ChangeNotifier {
   CheckoutBackend._();
   static final CheckoutBackend instance = CheckoutBackend._();
@@ -63,7 +62,7 @@ class CheckoutBackend extends ChangeNotifier {
     return '';
   }
 
-  /// Helper asinkron untuk menjamin User ID aktif tidak pernah kosong
+ 
   Future<String> resolveUserId() async {
     final cur = userId;
     if (cur.isNotEmpty) return cur;
@@ -109,7 +108,7 @@ class CheckoutBackend extends ChangeNotifier {
   double _walletBalance = 0;
   double get walletBalance => _walletBalance;
 
-  // Detail booking aktif
+
   String _locationName = '-';
   String get locationName => _locationName;
 
@@ -137,6 +136,16 @@ class CheckoutBackend extends ChangeNotifier {
   int _durationHours = 1;
   int get durationHours => _durationHours;
 
+  // ============================================================================
+  // [UBAH TARIF, BIAYA LAYANAN, DISKON]
+  // Rumus harga: subtotal = durasi(jam) x tarif/jam ; total = subtotal - diskon (+ biaya layanan jika dipakai).
+  // - Tarif default: `_hourlyRate = 5000` (dipakai kalau data lokasi belum mengisi tarif; tarif asli dari
+  //   tabel parking_locations lewat setBookingDetails(hourlyRate: ...)).
+  // - Biaya layanan: ubah `serviceFee => 0` jadi mis. 2000, LALU tambahkan ke `totalPayment`
+  //   (sekarang totalPayment hanya subtotal - discountAmount, jadi serviceFee belum ikut dihitung!).
+  // - Diskon: ubah `discountAmount` mis. `subtotal * 0.1` untuk diskon 10%.
+  // Total ini yang dikirim ke bookings.total_price dan dipotong dari wallet di markBookingAsPaid.
+  // ============================================================================
   double _hourlyRate = 5000;
   double get hourlyRate => _hourlyRate;
 
@@ -170,7 +179,7 @@ class CheckoutBackend extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Memuat data kendaraan pengguna & saldo wallet (Targeted Column Query)
+  
   Future<void> fetchCheckoutData() async {
     _isLoading = true;
     notifyListeners();
@@ -179,7 +188,7 @@ class CheckoutBackend extends ChangeNotifier {
       final uid = await resolveUserId();
       if (uid.isEmpty) return;
 
-      // 1. Ambil info saldo wallet user (Targeted Column Query)
+
       final userRes = await _client
           .from('users')
           .select('id, full_name, wallet_balance, points')
@@ -190,7 +199,7 @@ class CheckoutBackend extends ChangeNotifier {
         _walletBalance = (userRes['wallet_balance'] as num?)?.toDouble() ?? 0.0;
       }
 
-      // 2. Ambil daftar kendaraan user (Targeted Column Query)
+   
       final vehiclesRes = await _client
           .from('vehicles')
           .select('id, brand, model, color, plate_number, vehicle_type, is_default')
@@ -242,7 +251,6 @@ class CheckoutBackend extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// Membuat booking baru & memproses transaksi pembayaran di Supabase
   Future<Map<String, dynamic>?> confirmAndCreateBooking() async {
     _isLoading = true;
     notifyListeners();
@@ -255,7 +263,7 @@ class CheckoutBackend extends ChangeNotifier {
       final startTime = _scheduledStartTime ?? now;
       final endTime = _scheduledEndTime ?? startTime.add(Duration(hours: _durationHours));
 
-      // 1. Ambil location_id jika belum terisi
+  
       String? actualLocId = _locationId;
       if (actualLocId == null || actualLocId.isEmpty) {
         final loc = await _client
@@ -274,7 +282,7 @@ class CheckoutBackend extends ChangeNotifier {
         throw Exception('Lokasi parkir tidak ditemukan di database.');
       }
 
-      // 2. Ambil slot_id jika ada
+
       String? actualSlotId = _slotId;
       if ((actualSlotId == null || actualSlotId.isEmpty) && _slotCode != '-' && _slotCode.isNotEmpty) {
         final slotRes = await _client
@@ -286,7 +294,6 @@ class CheckoutBackend extends ChangeNotifier {
         actualSlotId = slotRes?['id'] as String?;
       }
 
-      // Validasi ketat bentrok slot sebelum insert/update ke database
       if (actualSlotId != null) {
         final hasConflict = await checkSlotConflict(
           slotId: actualSlotId,
@@ -310,8 +317,7 @@ class CheckoutBackend extends ChangeNotifier {
               : 'Toyota Land Cruiser')
           : 'Toyota Land Cruiser';
       final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
-
-      // Jika sudah ada hold booking ID yang dibuat saat masuk checkout, perbarui durasi, harga, jam, dan kendaraan
+      
       if (_holdBookingId != null && _holdBookingId!.isNotEmpty) {
         final updated = await _client
             .from('bookings')
@@ -338,16 +344,7 @@ class CheckoutBackend extends ChangeNotifier {
         }
       }
 
-      // ============================================================================
-      // [PETUNJUK PRESENTASI - FUNCTION PEMESANAN TIKET (CREATE BOOKING / HOLD)]
-      // Operasi Database: Supabase INSERT ke tabel 'bookings'
-      // Targeted Select: select('id, booking_code, total_price, ...') (Tanpa SELECT *)
-      // Kolom Utama: booking_code ('BK-XXXXX'), start_time, end_time, duration_hours,
-      //              payment_status ('unpaid'), booking_status ('upcoming'), qr_code_hash.
-      // Penguncian Slot: Status slot diubah menjadi 'reserved' agar slot tidak diserobot pengguna lain.
-      // Batas Pembayaran: Diberikan countdown hold slot selama 2 menit 59 detik.
-      // ============================================================================
-      // 3. Insert ke tabel bookings jika belum ada hold booking (status awal 'unpaid' dengan hold time 2:59 menit)
+      
       final bookingInsert = await _client.from('bookings').insert({
         'booking_code': bookingCode,
         'user_id': actualUid,
@@ -371,7 +368,7 @@ class CheckoutBackend extends ChangeNotifier {
         _holdCreatedAt = DateTime.tryParse(bookingInsert['created_at'].toString())?.toLocal() ?? DateTime.now();
       }
 
-      // Tandai slot sebagai reserved sementara
+   
       if (actualSlotId != null) {
         await _client.from('parking_slots').update({
           'status': 'reserved',
@@ -395,14 +392,13 @@ class CheckoutBackend extends ChangeNotifier {
     }
   }
 
-  /// Membuat booking unpaid untuk menahan slot selama 2:59 menit sejak pertama kali masuk halaman checkout
   Future<bool> createHoldBooking() async {
     try {
       final now = DateTime.now();
       final startTime = _scheduledStartTime ?? now;
       final endTime = _scheduledEndTime ?? startTime.add(Duration(hours: _durationHours));
 
-      // 1. Ambil location_id jika belum terisi
+     
       String? actualLocId = _locationId;
       if (actualLocId == null || actualLocId.isEmpty) {
         final loc = await _client
@@ -419,7 +415,7 @@ class CheckoutBackend extends ChangeNotifier {
 
       if (actualLocId == null) return false;
 
-      // 2. Ambil slot_id jika ada
+
       String? actualSlotId = _slotId;
       if ((actualSlotId == null || actualSlotId.isEmpty) && _slotCode != '-' && _slotCode.isNotEmpty) {
         final slotRes = await _client
@@ -431,7 +427,7 @@ class CheckoutBackend extends ChangeNotifier {
         actualSlotId = slotRes?['id'] as String?;
       }
 
-      // Validasi bentrok slot
+
       if (actualSlotId != null) {
         final hasConflict = await checkSlotConflict(
           slotId: actualSlotId,
@@ -455,7 +451,7 @@ class CheckoutBackend extends ChangeNotifier {
           : 'Toyota Land Cruiser';
       final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
 
-      // Insert ke tabel bookings dengan payment_status 'unpaid'
+
       final result = await _client.from('bookings').insert({
         'booking_code': bookingCode,
         'user_id': actualUid,
@@ -478,7 +474,7 @@ class CheckoutBackend extends ChangeNotifier {
         _holdBookingId = result['id']?.toString();
         _holdCreatedAt = DateTime.tryParse(result['created_at'].toString())?.toLocal() ?? DateTime.now();
 
-        // Kunci status slot menjadi reserved agar tidak bisa dibooking orang lain
+       
         if (actualSlotId != null) {
           await _client.from('parking_slots').update({
             'status': 'reserved',
@@ -494,7 +490,7 @@ class CheckoutBackend extends ChangeNotifier {
     }
   }
 
-  /// Batalkan penahanan slot jika waktu habis atau booking tidak dibayar
+
   Future<void> cancelHoldBooking({String? bookingId}) async {
     final targetId = bookingId ?? _holdBookingId;
     if (targetId == null || targetId.isEmpty) return;
@@ -527,7 +523,7 @@ class CheckoutBackend extends ChangeNotifier {
         _holdCreatedAt = null;
       }
 
-      // Sinkronisasi pembersihan otomatis di Supabase
+
       try {
         await _client.rpc('auto_process_expired_bookings_and_sessions');
       } catch (_) {}
@@ -538,7 +534,7 @@ class CheckoutBackend extends ChangeNotifier {
     }
   }
 
-  /// Memuat data booking dari ID yang belum dibayar di riwayat
+ 
   Future<bool> loadFromExistingBooking(String bookingId) async {
     try {
       var b = await _client
@@ -548,7 +544,7 @@ class CheckoutBackend extends ChangeNotifier {
           .maybeSingle();
 
       if (b == null) {
-        // Fallback: jika ID yang diteruskan merupakan ID sesi dari parking_sessions
+      
         final s = await _client
             .from('parking_sessions')
             .select('booking_id')
@@ -616,7 +612,6 @@ class CheckoutBackend extends ChangeNotifier {
     }
   }
 
-  /// Memeriksa apakah slot yang dipilih bentrok dengan reservasi yang sudah ada
   Future<bool> checkSlotConflict({
     String? slotId,
     String? slotCode,
@@ -625,7 +620,7 @@ class CheckoutBackend extends ChangeNotifier {
     required DateTime endTime,
   }) async {
     try {
-      // Jalankan pembersihan otomatis sebelum pengecekan agar status slot di DB selalu akurat
+
       try {
         await _client.rpc('auto_process_expired_bookings_and_sessions');
       } catch (_) {}
@@ -655,12 +650,12 @@ class CheckoutBackend extends ChangeNotifier {
 
       for (final b in bookings) {
         final bId = b['id']?.toString();
-        // 1. Abaikan booking milik pengguna sendiri yang sedang dalam proses checkout ini
+  
         if (_holdBookingId != null && bId == _holdBookingId) {
           continue;
         }
 
-        // 2. Abaikan booking unpaid yang sudah melewati batas 2 menit 59 detik (179s)
+
         final payStatus = (b['payment_status'] ?? '').toString().toLowerCase();
         if (payStatus == 'unpaid') {
           final cat = DateTime.tryParse(b['created_at']?.toString() ?? '')?.toLocal();
@@ -672,12 +667,12 @@ class CheckoutBackend extends ChangeNotifier {
         final bStart = DateTime.parse(b['start_time'].toString()).toLocal();
         final bEnd = DateTime.parse(b['end_time'].toString()).toLocal();
 
-        // 3. Abaikan booking yang jadwalnya sudah selesai di masa lampau
+
         if (bEnd.isBefore(now) || bEnd.isAtSameMomentAs(now)) {
           continue;
         }
 
-        // Formula overlap: startA < endB && endA > startB
+   
         if (startTime.isBefore(bEnd) && endTime.isAfter(bStart)) {
           return true;
         }
@@ -689,7 +684,7 @@ class CheckoutBackend extends ChangeNotifier {
     }
   }
 
-  /// Menghitung jadwal jam yang masih kosong dan tersedia hari ini untuk slot terpilih
+ 
   Future<List<AvailableTimeWindow>> getAvailableTimeSlotsToday({
     String? slotId,
     String? slotCode,
@@ -731,12 +726,12 @@ class CheckoutBackend extends ChangeNotifier {
       List<Map<String, DateTime>> bookedIntervals = [];
       for (final b in bookings) {
         final bId = b['id']?.toString();
-        // Abaikan booking sendiri
+
         if (_holdBookingId != null && bId == _holdBookingId) {
           continue;
         }
 
-        // Abaikan unpaid > 179s
+
         final payStatus = (b['payment_status'] ?? '').toString().toLowerCase();
         if (payStatus == 'unpaid') {
           final cat = DateTime.tryParse(b['created_at']?.toString() ?? '')?.toLocal();
@@ -760,7 +755,7 @@ class CheckoutBackend extends ChangeNotifier {
 
       bookedIntervals.sort((a, b) => a['start']!.compareTo(b['start']!));
 
-      // Gabungkan interval booking yang saling tumpang tindih / berdekatan
+  
       List<Map<String, DateTime>> merged = [];
       for (final interval in bookedIntervals) {
         if (merged.isEmpty) {
@@ -778,7 +773,7 @@ class CheckoutBackend extends ChangeNotifier {
         }
       }
 
-      // Cari celah jam kosong yang tersisa
+   
       List<AvailableTimeWindow> windows = [];
       DateTime ptr = windowStart;
 
@@ -830,17 +825,6 @@ class CheckoutBackend extends ChangeNotifier {
     );
   }
 
-  // ============================================================================
-  // [PETUNJUK PRESENTASI - FUNCTION PEMBAYARAN TIKET (PAYMENT EXECUTION)]
-  // Alur Eksekusi Transaksi:
-  // 1. Validasi status hold booking dan batas waktu pembayaran 2:59 menit.
-  // 2. Jika ParkSmart Pay: cek saldo `wallet_balance` pengguna di `public.users`.
-  //    Potong saldo jika mencukupi (UPDATE users).
-  // 3. Update status tiket di `public.bookings`: payment_status = 'paid', booking_status = 'upcoming'.
-  // 4. Update status slot di `public.parking_slots`: status = 'occupied'.
-  // 5. Catat riwayat audit pembayaran di tabel `public.payments` (transaksi sukses).
-  // ============================================================================
-  /// Memproses pembayaran booking setelah validasi PIN sukses
   Future<bool> markBookingAsPaid(String bookingId) async {
     try {
       _lastPaymentError = null;
@@ -881,19 +865,19 @@ class CheckoutBackend extends ChangeNotifier {
       final locName = bRes['parking_locations']?['name']?.toString() ?? _locationName;
       final sCode = bRes['parking_slots']?['slot_code']?.toString() ?? _slotCode;
 
-      // 1. Cek metode pembayaran aktif
+
       final selectedMethod = PaymentMethodsBackend.instance.selectedMethod;
       final isParkSmart = selectedMethod == 'parksmart_pay' || selectedMethod == 'wallet';
 
       if (isParkSmart) {
-        // Ambil saldo terbaru dari database (fresh query, bukan cache) untuk hindari bug saldo stale setelah top up
+        
         final userRes = await _client
             .from('users')
             .select('wallet_balance, total_parking_count, total_spent')
             .eq('id', actualUserId)
             .maybeSingle();
         final currentBal = (userRes?['wallet_balance'] as num?)?.toDouble() ?? 0.0;
-        // Sync cache dengan data DB terbaru
+        
         _walletBalance = currentBal;
 
         if (currentBal < price) {
@@ -906,7 +890,7 @@ class CheckoutBackend extends ChangeNotifier {
         final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
         final currentTotalSpent = (userRes?['total_spent'] as num?)?.toDouble() ?? 0.0;
 
-        // Potong saldo wallet, naikkan parking count, dan update total_spent untuk membership tier
+       
         await _client.from('users').update({
           'wallet_balance': newBalance,
           'total_parking_count': currentCount + 1,
@@ -922,8 +906,7 @@ class CheckoutBackend extends ChangeNotifier {
           walletBalance: newBalance.toInt(),
         );
       } else {
-        // Metode selain ParkSmart (GoPay, OVO, ShopeePay dll)
-        // Tidak perlu validasi saldo & tidak memotong wallet internal ParkSmart Pay!
+
         final userRes = await _client
             .from('users')
             .select('total_parking_count, total_spent')
@@ -938,7 +921,7 @@ class CheckoutBackend extends ChangeNotifier {
         }).eq('id', actualUserId);
       }
 
-      // 2. Update status booking menjadi paid & upcoming beserta durasi dan total harga terkonfirmasi
+    
       await _client.from('bookings').update({
         'payment_status': 'paid',
         'booking_status': 'upcoming',
@@ -948,7 +931,7 @@ class CheckoutBackend extends ChangeNotifier {
         'end_time': endTime.toUtc().toIso8601String(),
       }).eq('id', bookingId);
 
-      // 3. Catat riwayat transaksi sukses di tabel payments
+
       final trxCode = 'TRX-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
       await _client.from('payments').insert({
         'transaction_code': trxCode,
@@ -962,7 +945,7 @@ class CheckoutBackend extends ChangeNotifier {
         'completed_at': DateTime.now().toIso8601String(),
       });
 
-      // 5. Pastikan slot terkunci reserved
+  
       if (bRes['slot_id'] != null) {
         await _client.from('parking_slots').update({
           'status': 'reserved',

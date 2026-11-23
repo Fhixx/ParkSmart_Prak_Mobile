@@ -17,7 +17,7 @@ class BottomDockNavigation extends StatelessWidget {
       height: 68,
       constraints: const BoxConstraints(maxWidth: 360),
       decoration: BoxDecoration(
-        // ─── [USER] WARNA LATAR BILAH DOCK NAVIGASI BAWAH ───
+        // ─── WARNA LATAR BILAH DOCK NAVIGASI BAWAH ───
         color: const Color(0xFF1C1D1F), // <-- Ubah warna Latar Belakang Dock Navigasi Melayang (Hitam Charcoal)
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
@@ -42,6 +42,15 @@ class BottomDockNavigation extends StatelessWidget {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HistoryScreen()));
             }
           }),
+          // ===========================================================================
+          // Urutan tab ditulis berurutan di Row: Home, Riwayat, Favorit (tengah), Profil.
+          // - Ganti ikon: ubah `Icons.favorite_border` (dan warna di `color:`). Daftar ikon: api.flutter.dev -> Icons.
+          // - Tukar halaman tujuan: ubah halaman di `MaterialPageRoute(builder: (_) => const FavoriteScreen())`
+          //   dan tambahkan import-nya di bagian atas file.
+          // - Menambah tab baru: tambah nilai di `enum DockTab`, tambahkan _buildIcon baru di Row,
+          //   lalu kirim `activeTab: DockTab.xxx` dari layar tujuan agar ikon aktif menyala.
+          // Dock dipakai oleh home_screen, history_screen, dan profile_screen (cek parameter activeTab di masing-masing).
+          // ============================================================================
           // Center: Favorit (rounded-2xl)
           GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoriteScreen())),
@@ -71,7 +80,7 @@ class BottomDockNavigation extends StatelessWidget {
       child: Container(
         width: 48, height: 48,
         decoration: BoxDecoration(
-          // ─── [USER] WARNA TAB AKTIF DI DOCK NAVIGASI ───
+          // ─── WARNA TAB AKTIF DI DOCK NAVIGASI ───
           color: isActive ? const Color(0xFFD67B5A) : Colors.transparent, // <-- Ubah warna Lingkaran Tab Aktif (Terracotta Oranye)
           shape: BoxShape.circle,
         ),

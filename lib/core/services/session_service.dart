@@ -14,30 +14,23 @@ import '../../features/history/backend/verified_parking_sessions_backend.dart';
 import '../../features/notification/backend/notification_backend.dart';
 import '../../main.dart' show navigatorKey;
 
-// ============================================================================
-// [PETUNJUK PRESENTASI - SISTEM PENYIMPANAN LOKAL SESI LOGIN & KEAMANAN OTOMATIS]
-// Komponen: SessionService
-// Media Penyimpanan: SharedPreferences (Disk Storage) + In-Memory State
-// Kunci-Kunci Lokal (Storage Keys):
-// - 'ps_session_is_logged_in': Status login aktif (boolean)
-// - 'ps_session_user_type': Jenis akun ('user' atau 'admin')
-// - 'ps_session_user_id': UUID unik akun dari Supabase
-// - 'ps_session_identifier': Email atau nomor telepon pengguna
-// - 'ps_session_admin_role': Role otoritas admin ('super_admin', 'operations', 'finance', 'cs')
-// - 'ps_session_last_active_time': Waktu interaksi layar terakhir untuk auto-logout 30 menit
-// ============================================================================
-/// Layanan Pengelola Sesi Terpadu (User & Admin) - ParkSmart ID
-/// Mengatur batas waktu tidak aktif (Inactivity Timeout) dan background session
-/// selama 30 menit. Jika waktu habis, sistem otomatis melakukan logout demi keamanan.
 class SessionService with WidgetsBindingObserver {
   static final SessionService instance = SessionService._internal();
   factory SessionService() => instance;
   SessionService._internal();
 
+  // ============================================================================
+  // [UBAH BATAS SESI LOGIN]
+  // Diminta: "ganti auto-logout jadi 1 menit" / "jadi 2 jam".
+  // Ubah: nilai di `sessionTimeout` di bawah (Duration(minutes: 30) -> Duration(minutes: 1)).
+  // Untuk demo cepat: Duration(seconds: 20). Pengecekan berjalan tiap 10 detik (_inactivityCheckTimer),
+  // jadi logout bisa terlambat sampai 10 detik. Teks log 'Inactivity timeout ... 30 menit' di bawah hanya
+  // pesan debug, tidak memengaruhi perilaku. Hot restart (bukan hot reload) agar const terbaca ulang.
+  // ============================================================================
   /// Durasi batas waktu sesi tidak aktif / latar belakang: 30 Menit
   static const Duration sessionTimeout = Duration(minutes: 30);
 
-  // Storage Keys
+
   static const String _kIsLoggedIn = 'ps_session_is_logged_in';
   static const String _kUserType = 'ps_session_user_type';
   static const String _kIdentifier = 'ps_session_identifier';
@@ -47,7 +40,7 @@ class SessionService with WidgetsBindingObserver {
   static const String _kLastActiveTime = 'ps_session_last_active_time';
   static const String _kBackgroundTime = 'ps_session_background_time';
 
-  // In-memory state
+
   bool _isLoggedIn = false;
   String? _userType; // 'user' | 'admin'
   String? _identifier;
@@ -88,7 +81,7 @@ class SessionService with WidgetsBindingObserver {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  /// Inisialisasi awal saat aplikasi dibuka di main.dart
+ 
   Future<void> init() async {
     WidgetsBinding.instance.addObserver(this);
 
@@ -111,12 +104,12 @@ class SessionService with WidgetsBindingObserver {
           final elapsed = DateTime.now().difference(referenceTime);
 
           if (elapsed >= sessionTimeout) {
-            // Sesi kedaluwarsa saat aplikasi ditutup/dimatikan lebih dari 30 menit
+    
             debugPrint('[SessionService] Sesi kedaluwarsa saat cold start: $elapsed > 30 menit. Auto logout.');
             await clearSession();
             _sessionExpiredOnStartup = true;
           } else {
-            // Sesi masih valid
+         
             _lastActiveTime = DateTime.now();
             await _persistLastActiveTime(_lastActiveTime!);
             _startInactivityCheckTimer();
@@ -146,14 +139,14 @@ class SessionService with WidgetsBindingObserver {
     }
   }
 
-  /// Mengambil dan me-reset status sesi kedaluwarsa saat cold start
+
   bool consumeSessionExpiredOnStartup() {
     final expired = _sessionExpiredOnStartup;
     _sessionExpiredOnStartup = false;
     return expired;
   }
 
-  /// Memulai sesi login baru (baik untuk Pengguna biasa maupun Admin)
+ 
   Future<void> startSession({
     required String userType,
     required String identifier,
@@ -216,14 +209,14 @@ class SessionService with WidgetsBindingObserver {
     debugPrint('[SessionService] Sesi $userType dimulai untuk $userName ($identifier, uid: $userId). Batas waktu: 30 menit.');
   }
 
-  /// Mencatat sentuhan/interaksi pengguna di layar agar countdown 30 menit diperbarui
+
   void recordUserActivity() {
     if (!_isLoggedIn) return;
 
     final now = DateTime.now();
     _lastActiveTime = now;
 
-    // Batasi penulisan ke disk (SharedPreferences) minimal setiap 15 detik untuk optimasi performa
+    
     if (_lastDiskWriteTime == null || now.difference(_lastDiskWriteTime!).inSeconds >= 15) {
       _lastDiskWriteTime = now;
       _persistLastActiveTime(now);
@@ -237,7 +230,7 @@ class SessionService with WidgetsBindingObserver {
     } catch (_) {}
   }
 
-  /// Memulai pengecekan periodik ketika aplikasi sedang aktif di layar
+
   void _startInactivityCheckTimer() {
     _inactivityCheckTimer?.cancel();
     _inactivityCheckTimer = Timer.periodic(const Duration(seconds: 10), (_) {
@@ -251,7 +244,7 @@ class SessionService with WidgetsBindingObserver {
     });
   }
 
-  /// Menangani perubahan siklus hidup aplikasi (Foreground / Background)
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_isLoggedIn) return;
@@ -259,15 +252,15 @@ class SessionService with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden) {
-      // Aplikasi diminimalkan / masuk latar belakang / layar terkunci
+      
       _onAppBackgrounded();
     } else if (state == AppLifecycleState.resumed) {
-      // Aplikasi dibuka kembali ke latar depan
+   
       _onAppResumed();
     }
   }
 
-  /// Dipanggil saat aplikasi berpindah ke background
+
   void _onAppBackgrounded() {
     final now = DateTime.now();
     _backgroundTime = now;
@@ -276,7 +269,7 @@ class SessionService with WidgetsBindingObserver {
       prefs.setInt(_kBackgroundTime, now.millisecondsSinceEpoch);
     });
 
-    // Jalankan timer 30 menit di memori jika proses masih hidup di background
+
     _backgroundTimeoutTimer?.cancel();
     _backgroundTimeoutTimer = Timer(sessionTimeout, () {
       debugPrint('[SessionService] Background 30 menit timer habis di background. Menandai sesi expired.');
@@ -286,7 +279,7 @@ class SessionService with WidgetsBindingObserver {
     debugPrint('[SessionService] Aplikasi masuk latar belakang. Waktu mulai hitung 30 menit: $now');
   }
 
-  /// Dipanggil saat aplikasi dibuka kembali dari background
+
   void _onAppResumed() {
     _backgroundTimeoutTimer?.cancel();
     _backgroundTimeoutTimer = null;
@@ -303,7 +296,7 @@ class SessionService with WidgetsBindingObserver {
       debugPrint('[SessionService] Waktu di latar belakang melebihi 30 menit! Auto logout dipicu.');
       logoutDueToTimeout();
     } else {
-      // Masih dalam batas 30 menit, reset waktu aktif
+
       _lastActiveTime = now;
       _backgroundTime = null;
       _persistLastActiveTime(now);
@@ -311,14 +304,14 @@ class SessionService with WidgetsBindingObserver {
     }
   }
 
-  /// Melakukan logout otomatis karena batas waktu 30 menit habis
+
   Future<void> logoutDueToTimeout() async {
     if (!_isLoggedIn) return;
 
     debugPrint('[SessionService] Menjalankan logout otomatis karena sesi habis...');
     await clearSession();
 
-    // Reset sesi di ProfileBackend
+
     try {
       ProfileBackend.instance.setLoggedInUser(
         id: '',
@@ -330,12 +323,12 @@ class SessionService with WidgetsBindingObserver {
       );
     } catch (_) {}
 
-    // Sign out dari Supabase
+
     try {
       await Supabase.instance.client.auth.signOut();
     } catch (_) {}
 
-    // Bersihkan sesi aktif admin dari SharedPreferences
+
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('current_admin_name');
@@ -343,7 +336,7 @@ class SessionService with WidgetsBindingObserver {
       await prefs.remove('current_admin_role');
     } catch (_) {}
 
-    // Arahkan navigasi ke LoginScreen dengan parameter sessionExpired: true
+
     try {
       final nav = navigatorKey.currentState;
       if (nav != null) {
@@ -359,7 +352,7 @@ class SessionService with WidgetsBindingObserver {
     }
   }
 
-  /// Membersihkan seluruh data sesi (Manual Logout atau Timeout)
+
   Future<void> clearSession() async {
     ParkingNotificationService().stopRealtimeUrgentListener();
     ParkingNotificationService().cancelUrgentNotification();
@@ -397,7 +390,7 @@ class SessionService with WidgetsBindingObserver {
       debugPrint('[SessionService] Error clearSession: $e');
     }
 
-    // Reset seluruh backend in-memory state agar data akun sebelumnya tidak bocor
+  
     try {
       ProfileBackend.instance.clearProfile();
     } catch (_) {}

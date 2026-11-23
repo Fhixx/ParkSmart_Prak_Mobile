@@ -56,7 +56,14 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   }
 
   // ============================================================================
-  // [PETUNJUK PRESENTASI - TIMER HITUNG MUNDUR TIKET (COUNTDOWN TICKER)]
+  // - Peringatan 10 menit: angka `600` (detik) di `_remainingSeconds <= 600` -> ganti 300 untuk 5 menit.
+  //   Ada 2 tempat (sekitar _startTimer dan blok pengecekan awal). Angka `590` di sebelahnya = batas bawah
+  //   jendela notifikasi (600 - 10), sesuaikan juga.
+  // - Demo timer cepat tanpa ubah kode: jalankan di Supabase SQL Editor:
+  //   UPDATE public.parking_sessions SET expected_check_out_time = NOW() + INTERVAL '1 minute' WHERE status = 'active';
+  // ============================================================================
+
+  // ============================================================================
   // Komponen: Timer.periodic(const Duration(seconds: 1), ...)
   // Cara Kerja:
   // 1. Setiap detik, timer membandingkan checkout time dari server dengan DateTime.now().
@@ -77,7 +84,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
             _remainingSeconds--;
           }
 
-          // Trigger notifikasi darurat saat tepat 10 menit tersisa
+    
           if (_remainingSeconds <= 600 && _remainingSeconds > 590 && !_urgentNotifTriggered) {
             _urgentNotifTriggered = true;
             ParkingNotificationService().triggerUrgentWarning(
@@ -96,7 +103,6 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     _timer?.cancel();
     final sId = widget.sessionId ?? ActiveSessionBackend.instance.sessionId;
 
-    // Verifikasi terlebih dahulu ke database apakah sesi telah diperpanjang oleh user
     await ActiveSessionBackend.instance.fetchActiveSession(sessionId: sId);
     final freshCheckout = ActiveSessionBackend.instance.expectedCheckOutTime;
     final now = DateTime.now();
@@ -135,7 +141,6 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    // Jangan stop notif di dispose — biarkan tetap jalan di background
     super.dispose();
   }
 
@@ -331,10 +336,9 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                       : Stack(
                     children: [
                       // ============================================================================
-                      // [PETUNJUK PRESENTASI - PULL-TO-REFRESH SINKRONISASI WAKTU TIKET]
+                      // PULL-TO-REFRESH SINKRONISASI WAKTU TIKET]
                       // Mengambil ulang titik waktu target 'expected_check_out_time' dari Supabase
                       // saat layar ditarik ke bawah (swipe-to-refresh).
-                      // Jika dosen menginjeksi 1 menit di database, cukup tarik layar ke bawah di sini!
                       // ============================================================================
                       RefreshIndicator(
                         color: const Color(0xFF114177),
@@ -393,7 +397,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                           const SizedBox(height: 4),
                                           GestureDetector(
                                             onTap: () {
-                                              // DEBUG: Fast forward to 10:02 to test the 10-minute trigger
+                                            
                                               setState(() {
                                                 _remainingSeconds = 602;
                                               });

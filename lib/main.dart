@@ -39,13 +39,21 @@ void main() async {
   // 1b. Inisialisasi Hive (Local Storage) & buka box 'favorites' untuk fitur Parkir Favorit.
   // Box dibuka di awal agar data favorit langsung tersedia secara offline.
   try {
+    // ============================================================================
+    // URUTAN STARTUP & LOCAL STORAGE]
+    // Urutan main(): load .env -> Hive.initFlutter + openBox('favorites') -> Supabase.initialize ->
+    // SharedPreferences (simpan url/anon key untuk background isolate) -> notifikasi -> runApp.
+    // - Menambah box Hive baru (mis. 'settings'): tambahkan `await Hive.openBox('settings');` tepat di bawah ini.
+    // - Hive WAJIB diinisialisasi sebelum FavoriteBackend dipakai; kalau dipindah ke bawah, favorit crash.
+    // - Variabel .env yang dibaca: SUPABASE_URL dan SUPABASE_ANON_KEY (lihat .env.example).
+    // ============================================================================
     await Hive.initFlutter();
     await Hive.openBox('favorites');
   } catch (e) {
     debugPrint('Gagal inisialisasi Hive: $e');
   }
 
-  // 2. Inisialisasi Supabase murni dari .env (tanpa hardcode di source code)
+  // Inisialisasi Supabase murni dari .env (tanpa hardcode di source code)
   final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
@@ -71,7 +79,7 @@ void main() async {
     debugPrint('PERINGATAN: SUPABASE_URL atau SUPABASE_ANON_KEY tidak ditemukan di .env');
   }
 
-  // 3. Konfigurasi Orientasi & Tampilan Sistem UI Android
+  //Konfigurasi Orientasi & Tampilan Sistem UI Android
   if (!kIsWeb) {
     try {
       SystemChrome.setEnabledSystemUIMode(
@@ -87,7 +95,7 @@ void main() async {
     } catch (_) {}
   }
 
-  // 4. Konfigurasi Google Fonts & Inisialisasi Layanan Pendukung Secara Paralel (Cepat & Anti-Freeze)
+  //Konfigurasi Google Fonts & Inisialisasi Layanan Pendukung Secara Paralel (Cepat & Anti-Freeze)
   GoogleFonts.config.allowRuntimeFetching = true;
 
   if (!kIsWeb) {
@@ -114,7 +122,7 @@ void main() async {
     NetworkSecurityService.instance.init().catchError((e) => debugPrint('NetworkSecurityService init error: $e')),
   ]);
 
-  // 5. Jalankan Aplikasi Utama Secara Langsung (Mencegah Deadlock / Layar Hitam di Android & Web)
+  // Jalankan Aplikasi Utama Secara Langsung (Mencegah Deadlock / Layar Hitam di Android & Web)
   runApp(const ParkSmartApp());
 }
 
@@ -180,7 +188,7 @@ class _ParkSmartAppState extends State<ParkSmartApp> {
                   onPointerMove: (_) => SessionService.instance.recordUserActivity(),
                   child: child ?? const SizedBox.shrink(),
                 ),
-                // Pengaman Jaringan Global (User & Admin)
+          
                 const NoInternetOverlay(),
               ],
             );

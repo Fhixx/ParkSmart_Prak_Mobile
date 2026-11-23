@@ -257,7 +257,17 @@ class HistoryBackend extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Durasi hold slot untuk booking belum dibayar: 2 menit 59 detik
+  // ============================================================================
+  // [UBAH BATAS WAKTU BAYAR (HOLD SLOT 2:59)]
+  // "ganti batas bayar jadi 5 menit (300 detik)".
+  // PERHATIAN: angka 179 ditulis di BANYAK tempat, bukan satu konstanta. Ubah semuanya:
+  //   1. history_backend.dart            -> kHoldDurationSeconds (di bawah ini)
+  //   2. booking_confirmation_screen.dart -> _getRemainingSeconds (angka 179 ada 3x)
+  //   3. checkout_backend.dart           -> markBookingAsPaid: `inSeconds > 179` dan teks pesan error
+  //   4. admin_bookings_backend.dart & admin_operations_dashboard_backend.dart -> auto-cancel `> 179`
+  // Cari cepat: tekan Ctrl+Shift+F lalu ketik 179. Teks '2 menit 59 detik' juga ikut diganti.
+  // Kalau ada satu yang terlewat, UI dan server tidak sinkron (timer UI habis tapi booking belum batal).
+  // ============================================================================
   static const int kHoldDurationSeconds = 179;
 
   /// Cleanup async — hapus booking unpaid yang sudah kadaluwarsa & bebaskan slot
@@ -335,7 +345,7 @@ class HistoryBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Jalankan pembersihan otomatis agar pesanan expired/lewat checkout langsung disinkronkan
+    
       try {
         await _client.rpc('auto_process_expired_bookings_and_sessions');
       } catch (_) {}
@@ -351,7 +361,7 @@ class HistoryBackend extends ChangeNotifier {
       final List<HistoryItem> fetched = [];
       final Set<String> checkedInBookingIds = {};
 
-      // 1. Ambil dari tabel parking_sessions (sesi yang sudah check-in) HANYA milik user yang login
+      // 1. Ambil dari tabel parking_sessions
       final sessions = await _client
           .from('parking_sessions')
           .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, expected_check_out_time, check_out_time, parking_fee, total_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, payment_status, booking_status, plate_number, vehicle_desc)')
@@ -366,7 +376,7 @@ class HistoryBackend extends ChangeNotifier {
         fetched.add(HistoryItem.fromSessionMap(Map<String, dynamic>.from(s)));
       }
 
-      // 2. Ambil dari tabel bookings (reservasi yang belum check-in: Ready atau Belum Dibayar) HANYA milik user yang login
+      // 2. Ambil dari tabel bookings  HANYA milik user yang login
       final bookings = await _client
           .from('bookings')
           .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, plate_number, vehicle_desc, created_at, slot_id, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)')
@@ -380,7 +390,7 @@ class HistoryBackend extends ChangeNotifier {
 
         final payStatus = (b['payment_status'] ?? '').toString().toLowerCase();
 
-        // Jika unpaid — cek apakah sudah kadaluwarsa (>2:59 menit)
+
         if (payStatus == 'unpaid' || payStatus.isEmpty) {
           final createdAt = b['created_at'] != null
               ? DateTime.tryParse(b['created_at'].toString())?.toLocal()
@@ -388,7 +398,7 @@ class HistoryBackend extends ChangeNotifier {
           if (createdAt != null) {
             final ageSeconds = DateTime.now().difference(createdAt).inSeconds;
             if (ageSeconds > kHoldDurationSeconds) {
-              // Kadaluwarsa — cleanup di background, jangan tampilkan
+              
               _cleanupExpiredBooking(bId, b['slot_id']?.toString());
               continue;
             }

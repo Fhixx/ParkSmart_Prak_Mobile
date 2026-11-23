@@ -390,6 +390,14 @@ class _PinScreenState extends State<PinScreen> {
     );
   }
 
+  // ============================================================================
+  // [UBAH PANJANG PIN (4 DIGIT -> 6 DIGIT)]
+  // Ada 3 tempat angka 4 di file ini: (1) `value.length == 4` di fungsi ini sebagai pemicu verifikasi,
+  // (2) `List.generate(4, ...)` untuk jumlah kotak/titik PIN, (3) `maxLength: 4` pada TextField.
+  // Ubah ketiganya ke 6. Verifikasi di pin_backend.dart membandingkan HASH PIN (users.pin_hash), jadi PIN lama
+  // 4 digit (mis. 4040 pada akun uji) tidak akan cocok dengan input 6 digit: buat ulang PIN akun uji lewat
+  // menu Pengaturan PIN (pin_settings_screen.dart) dan uji hasilnya, karena alur ini belum saya jalankan.
+  // ============================================================================
   void _onPinChanged(String value) async {
     if (value.length == 4 && !_isProcessing) {
       setState(() {
@@ -442,7 +450,7 @@ class _PinScreenState extends State<PinScreen> {
           return;
         }
 
-        // PIN cocok! Simpan ke Supabase
+
         final success = await PinBackend.instance.updatePin(value);
         if (!mounted) return;
 
@@ -467,7 +475,7 @@ class _PinScreenState extends State<PinScreen> {
           return;
         }
 
-        // Jika navigasi dari menu Profile / Setting (atau alur buat/reset PIN)
+
         final isProfileSetup = widget.transactionType.toLowerCase().contains('buat') ||
             widget.transactionType.toLowerCase().contains('reset');
 
@@ -532,8 +540,7 @@ class _PinScreenState extends State<PinScreen> {
           return;
         }
 
-        // Jika alur checkout/transaksi parkir tapi awalnya belum punya PIN:
-        // Setelah PIN tersimpan ke database, beralih ke mode konfirmasi PIN pembayaran
+   
         setState(() {
           _isCreatingPin = false;
           _isConfirmingPin = false;
@@ -554,7 +561,7 @@ class _PinScreenState extends State<PinScreen> {
         return;
       }
 
-      // Kasus 2: Verifikasi PIN untuk transaksi biasa
+  
       final isValid = await PinBackend.instance.verifyPin(value);
       if (!mounted) return;
 

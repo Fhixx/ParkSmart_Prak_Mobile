@@ -29,6 +29,13 @@ class CurrencyService extends ChangeNotifier {
   static const String _prefsRatesKey = 'cached_currency_rates';
   static const String _prefsLastUpdatedKey = 'currency_last_updated';
 
+  // ============================================================================
+  // [TAMBAH / HAPUS MATA UANG]
+  // Tambah mata uang: tambahkan entri baru di map `supportedCurrencies` (code, name, symbol, flag, decimals).
+  // Contoh: 'GBP': CurrencyInfo(code: 'GBP', name: 'Pound Sterling', symbol: '£', flag: '🇬🇧', decimals: 2).
+  // Kurs diambil dari open.er-api.com dan di-cache di SharedPreferences (kunci cached_currency_rates).
+  // Kode harus ada di respons API tersebut. Untuk uji kurs ulang: hapus cache lewat clear data aplikasi.
+  // ============================================================================
   // Supported Currencies
   static const Map<String, CurrencyInfo> supportedCurrencies = {
     'IDR': CurrencyInfo(
@@ -116,7 +123,7 @@ class CurrencyService extends ChangeNotifier {
 
     notifyListeners();
 
-    // Fetch live rates di background hanya jika belum ada cache atau sudah lebih dari 12 jam
+    
     final shouldFetch = _lastUpdated == null ||
         DateTime.now().difference(_lastUpdated!).inHours >= 12;
     if (shouldFetch) {
@@ -124,21 +131,15 @@ class CurrencyService extends ChangeNotifier {
     }
   }
 
-  // ============================================================================
-  // [PETUNJUK PRESENTASI - API KURS MATA UANG & FORMATTING CURRENCY]
-  // API: Open Exchange Rates API (https://open.er-api.com/v6/latest/IDR)
-  // Jenis: REST API Publik (HTTP GET JSON, Tanpa API Key)
-  // Cara Ambil Data: Mengirim HTTP GET ke endpoint basis IDR, lalu menguraikan (decode)
-  // response JSON ['rates'] ke Map<String, double> untuk konversi nilai valas (USD, EUR, SGD, MYR, JPY).
-  // ============================================================================
+
   Future<bool> fetchLatestRates() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // Timeout dipersingkat ke 2.5 detik agar tidak menyebabkan lag saat cold start / Web
+      
       const timeoutDuration = Duration(milliseconds: 2500);
-      // Eksekusi pemanggilan REST API publik Open Exchange Rates
+      
       final response = await http
           .get(Uri.parse('https://open.er-api.com/v6/latest/IDR'))
           .timeout(timeoutDuration);
@@ -199,12 +200,7 @@ class CurrencyService extends ChangeNotifier {
     await prefs.setBool(_prefsConversionEnabledKey, _isConversionEnabled);
   }
 
-  // ============================================================================
-  // [PETUNJUK PRESENTASI - FUNCTION CONVERT CURRENCY]
-  // Fungsi: Menghitung nominal konversi dari basis Rupiah (IDR) ke kurs mata uang tujuan
-  // Rumus: amountInIdr * rate (misal Rp 16.000 * 0.0000625 = $1.00)
-  // ============================================================================
-  /// Convert amount from IDR base to target currency purely on the UI display
+
   double convert(num amountInIdr, [String? targetCurrency]) {
     if (!_isConversionEnabled) return amountInIdr.toDouble();
     final code = targetCurrency ?? _currentCurrency;
@@ -213,14 +209,6 @@ class CurrencyService extends ChangeNotifier {
     return amountInIdr.toDouble() * rate;
   }
 
-  // ============================================================================
-  // [PETUNJUK PRESENTASI - FUNCTION FORMAT CURRENCY]
-  // Fungsi: Mengubah angka numerik menjadi string mata uang berformat rapi
-  // Contoh Output:
-  // - IDR: "Rp 15.000" (menggunakan pemisah ribuan titik '.')
-  // - USD: "$ 0.95" (menggunakan pemisah desimal koma/titik sesuai decimals)
-  // ============================================================================
-  /// Format an amount in IDR into the active currency string
   String format(num amountInIdr, {bool includeCode = false}) {
     final info = currentInfo;
     final converted = convert(amountInIdr);
@@ -233,7 +221,7 @@ class CurrencyService extends ChangeNotifier {
       return includeCode ? 'Rp $formatted IDR' : 'Rp $formatted';
     }
 
-    // Number formatting for other currencies
+
     String numStr;
     if (info.decimals == 0) {
       numStr = converted.round().toString().replaceAllMapped(
@@ -256,7 +244,7 @@ class CurrencyService extends ChangeNotifier {
     return '${info.symbol} $numStr';
   }
 
-  /// Returns exchange rate string relative to 1 unit of target currency
+
   String getRateString(String targetCode) {
     if (targetCode == 'IDR') return '1 IDR = Rp 1';
     final rate = _rates[targetCode];
