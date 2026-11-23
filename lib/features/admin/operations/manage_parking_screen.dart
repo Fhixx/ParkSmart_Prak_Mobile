@@ -48,12 +48,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
       _selectedLocationId = widget.initialLocationId!;
     }
     ManageParkingBackend.instance.addListener(_onBackendUpdated);
-    ManageParkingBackend.instance.fetchLocations().then((_) {
-      _applyInitialLocation();
+    ManageParkingBackend.instance.fetchLocations().then((_) async {
+      await _applyInitialLocation();
     });
   }
 
-  void _applyInitialLocation() {
+  Future<void> _applyInitialLocation() async {
     if (_locations.isEmpty) return;
     if (widget.initialLocationId != null && _locations.any((l) => l['id'] == widget.initialLocationId)) {
       _selectedLocationId = widget.initialLocationId!;
@@ -66,7 +66,8 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     } else if (_selectedLocationId.isEmpty || !_locations.any((l) => l['id'] == _selectedLocationId)) {
       _selectedLocationId = _locations.first['id'];
     }
-    ManageParkingBackend.instance.fetchSlotsForLocation(_selectedLocationId);
+    // Tunggu seluruh slot lokasi selesai dimuat sebelum indikator alokasi dirender.
+    await ManageParkingBackend.instance.fetchSlotsForLocation(_selectedLocationId);
     if (mounted) setState(() {});
   }
 
@@ -671,9 +672,14 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     final activeFloorName = floors[_selectedFloorIndex];
 
     // Ambil data kapasitas gedung dan slot aktual dari database Supabase
-    final int totalCap = (loc['totalSlots'] as num?)?.toInt() ?? 0;
-    final int totalCreated = ManageParkingBackend.instance.getTotalSlotsCount(loc['id']);
-    final int remainingSlotsToAllocate = (totalCap >= totalCreated) ? (totalCap - totalCreated) : 0;
+    final int totalCap = loc['totalSlots'];
+    // Opsi A: hitung semua record denah pada seluruh lantai dan zona,
+    // tanpa membedakan status slot (tersedia, terisi, dipesan, atau maintenance).
+    final int totalCreated = loc['occupiedSlots'];
+    
+    final int remainingSlotsToAllocate =
+        totalCreated < totalCap ? totalCap - totalCreated : 0;
+    final bool isCapacityFull = totalCap > 0 && totalCreated >= totalCap;
 
     final zoneASlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneA');
     final zoneBSlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneB');
@@ -746,13 +752,15 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   ),
                 );
               }).toList(),
-              onChanged: (v) {
+              onChanged: (v) async {
                 if (v != null) {
                   setState(() {
                     _selectedLocationId = v;
                     _selectedFloorIndex = 0;
                   });
-                  ManageParkingBackend.instance.fetchSlotsForLocation(v);
+                  // Muat ulang jumlah denah untuk lokasi yang baru dipilih.
+                  await ManageParkingBackend.instance.fetchSlotsForLocation(v);
+                  if (mounted) setState(() {});
                 }
               },
             ),
@@ -858,13 +866,13 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     ],
                   ),
                   Text(
-                    remainingSlotsToAllocate == 0
-                        ? '$totalCreated / $totalCap Dialokasikan (Penuh)'
-                        : '$totalCreated / $totalCap Dialokasikan (Sisa $remainingSlotsToAllocate Slot)',
+                    isCapacityFull
+                        ? '$totalCreated / $totalCap Slot Denah (Penuh)'
+                        : '$totalCreated / $totalCap Slot Denah (Sisa $remainingSlotsToAllocate Slot)',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11.5,
                       fontWeight: FontWeight.bold,
-                      color: remainingSlotsToAllocate == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
+                      color: isCapacityFull ? const Color(0xFFDC2626) : const Color(0xFF114177),
                     ),
                   ),
                 ],
@@ -877,7 +885,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   minHeight: 6,
                   backgroundColor: const Color(0xFFE2E8F0),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    remainingSlotsToAllocate == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
+                    isCapacityFull ? const Color(0xFFDC2626) : const Color(0xFF114177),
                   ),
                 ),
               ),
@@ -915,7 +923,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             backgroundColor: const Color(0xFFDC2626),
-                            content: Text('Batas kapasitas ($totalCap slot) untuk gedung ini sudah tercapai!'),
+                            content: Text('Seluruh kapasitas denah ($totalCap slot) sudah dialokasikan.'),
                           ),
                         );
                         return;
@@ -1026,7 +1034,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             backgroundColor: const Color(0xFFDC2626),
-                            content: Text('Batas kapasitas ($totalCap slot) untuk gedung ini sudah tercapai!'),
+                            content: Text('Seluruh kapasitas denah ($totalCap slot) sudah dialokasikan.'),
                           ),
                         );
                         return;

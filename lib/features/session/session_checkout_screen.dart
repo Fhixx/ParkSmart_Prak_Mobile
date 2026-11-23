@@ -672,6 +672,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                           MaterialPageRoute(
                             builder: (_) => feedback.FeedbackScreen(
                               locationName: backend.locationName,
+                              locationId: backend.locationId,
                               slotCode: backend.slotCode,
                               floorName: backend.floorName,
                             ),

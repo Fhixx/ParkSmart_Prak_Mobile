@@ -48,10 +48,10 @@ class BottomDockNavigation extends StatelessWidget {
             child: Container(
               width: 48, height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: Colors.white.withValues(alpha: 0.0),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.favorite_border, size: 24, color: Colors.white),
+              child: const Icon(Icons.favorite_border, size: 24, color: Color.fromARGB(255, 169, 169, 169)),
             ),
           ),
           _buildIcon(context, Icons.person_outline, DockTab.profile, () {

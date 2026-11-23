@@ -168,7 +168,9 @@ class ManageParkingBackend extends ChangeNotifier {
     }
   }
 
-  /// Menghitung total slot yang sudah dibuat di lokasi ini pada SEMUA lantai
+  /// Menghitung seluruh slot denah yang sudah dibuat pada semua lantai dan zona.
+  /// Semua status tetap dihitung karena fungsi ini mengukur alokasi kapasitas,
+  /// bukan jumlah kendaraan yang sedang parkir.
   int getTotalSlotsCount(String locationId) {
     return _locationSlots[locationId]?.length ?? 0;
   }
@@ -248,7 +250,15 @@ class ManageParkingBackend extends ChangeNotifier {
       }
 
       final cap = (locCheck['total_capacity'] as num?)?.toInt() ?? 0;
-      final currentCount = getTotalSlotsCount(locationId);
+
+      // Hitung langsung dari Supabase agar validasi tidak bergantung pada cache
+      // _locationSlots yang mungkin belum selesai dimuat atau sudah kedaluwarsa.
+      // Semua status dihitung karena batas kapasitas berlaku untuk slot denah.
+      final currentSlotsRes = await _client
+          .from('parking_slots')
+          .select('id')
+          .eq('location_id', locationId);
+      final int currentCount = currentSlotsRes.length;
 
       if (currentCount >= cap) {
         _errorMessage = 'Batas kapasitas ($cap slot) tercapai untuk lokasi ini. Tidak dapat menambah slot lagi.';

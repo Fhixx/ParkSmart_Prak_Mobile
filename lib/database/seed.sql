@@ -247,3 +247,56 @@ VALUES
 ('12c7a09f-47e2-4fa4-b127-9fc4aaf06170', 'df714843-c4cf-4d45-b385-0390404d4429', 'car_racing', 4500, 4500, '2026-10-27T00:44:17.598628+00:00', 'highest')
 ON CONFLICT (id) DO NOTHING;
 
+-- ============================================================================
+-- TRIGGER UPDATE RATING & REVIEW_COUNT PARKING LOCATIONS
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.update_location_rating_and_review_count()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_location_id UUID;
+    v_avg_rating NUMERIC(2,1);
+    v_review_count INT;
+BEGIN
+    -- Determine which location_id to use (OLD for DELETE, NEW for INSERT/UPDATE)
+    IF TG_OP = 'DELETE' THEN
+        v_location_id := OLD.location_id;
+    ELSE
+        v_location_id := NEW.location_id;
+    END IF;
+
+    -- If location_id is null, nothing to do
+    IF v_location_id IS NULL THEN
+        RETURN COALESCE(NEW, OLD);
+    END IF;
+
+    -- Calculate average rating and review count from customer_feedbacks
+    SELECT 
+        CASE 
+            WHEN COUNT(*) = 0 THEN 0.0 
+            ELSE ROUND(AVG(rating)::numeric, 1) 
+        END,
+        COUNT(*)
+    INTO v_avg_rating, v_review_count
+    FROM public.customer_feedbacks
+    WHERE location_id = v_location_id;
+
+    -- Update parking_locations
+    UPDATE public.parking_locations
+    SET rating = v_avg_rating,
+        review_count = v_review_count,
+        updated_at = NOW()
+    WHERE id = v_location_id;
+
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_update_location_rating ON public.customer_feedbacks;
+CREATE TRIGGER trg_update_location_rating
+AFTER INSERT OR UPDATE OR DELETE ON public.customer_feedbacks
+FOR EACH ROW
+EXECUTE FUNCTION public.update_location_rating_and_review_count();
+

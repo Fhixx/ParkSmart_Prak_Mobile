@@ -31,6 +31,9 @@ class SessionCheckoutBackend extends ChangeNotifier {
   String _locationName = '-';
   String get locationName => _locationName;
 
+  String? _locationId;
+  String? get locationId => _locationId;
+
   String _slotCode = '-';
   String get slotCode => _slotCode;
 
@@ -197,6 +200,7 @@ class SessionCheckoutBackend extends ChangeNotifier {
               .eq('id', session['location_id'])
               .maybeSingle();
           if (loc != null) _locationName = loc['name']?.toString() ?? _locationName;
+          _locationId = session['location_id']?.toString();
         }
 
         // Slot
@@ -252,6 +256,7 @@ class SessionCheckoutBackend extends ChangeNotifier {
                 .eq('id', booking['location_id'])
                 .maybeSingle();
             if (loc != null) _locationName = loc['name']?.toString() ?? _locationName;
+            _locationId = booking['location_id']?.toString();
           }
 
           if (booking['slot_id'] != null) {

@@ -9,12 +9,14 @@ import 'backend/feedback_backend.dart';
 
 class FeedbackScreen extends StatefulWidget {
   final String? locationName;
+  final String? locationId;
   final String? slotCode;
   final String? floorName;
 
   const FeedbackScreen({
     super.key,
     this.locationName,
+    this.locationId,
     this.slotCode,
     this.floorName,
   });
@@ -474,6 +476,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                   await FeedbackBackend.instance.submitFeedback(
                                     rating: _rating,
                                     comment: _commentController.text,
+                                    locationId: widget.locationId,
                                     selectedTopics: _selectedTopics.toList(),
                                   );
                                   if (!mounted || !context.mounted) return;
