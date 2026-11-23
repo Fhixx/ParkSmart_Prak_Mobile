@@ -4,7 +4,7 @@ import '../features/history/history_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/favorite/favorite_screen.dart';
 
-enum DockTab { home, history, profile }
+enum DockTab { home, history, favorite, profile }
 
 class BottomDockNavigation extends StatelessWidget {
   final DockTab activeTab;
@@ -17,7 +17,7 @@ class BottomDockNavigation extends StatelessWidget {
       height: 68,
       constraints: const BoxConstraints(maxWidth: 360),
       decoration: BoxDecoration(
-        // ─── WARNA LATAR BILAH DOCK NAVIGASI BAWAH ───
+        // ─── [USER] WARNA LATAR BILAH DOCK NAVIGASI BAWAH ───
         color: const Color(0xFF1C1D1F), // <-- Ubah warna Latar Belakang Dock Navigasi Melayang (Hitam Charcoal)
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
@@ -42,27 +42,22 @@ class BottomDockNavigation extends StatelessWidget {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HistoryScreen()));
             }
           }),
-          // ===========================================================================
+          // ============================================================================
+          // [PANDUAN ASLAB - UBAH DOCK NAVIGASI BAWAH]
           // Urutan tab ditulis berurutan di Row: Home, Riwayat, Favorit (tengah), Profil.
-          // - Ganti ikon: ubah `Icons.favorite_border` (dan warna di `color:`). Daftar ikon: api.flutter.dev -> Icons.
+          // - Ganti ikon: ubah `Icons.favorite` / `Icons.favorite_border` di _buildIcon tab Favorit. Daftar ikon: api.flutter.dev -> Icons.
           // - Tukar halaman tujuan: ubah halaman di `MaterialPageRoute(builder: (_) => const FavoriteScreen())`
           //   dan tambahkan import-nya di bagian atas file.
           // - Menambah tab baru: tambah nilai di `enum DockTab`, tambahkan _buildIcon baru di Row,
           //   lalu kirim `activeTab: DockTab.xxx` dari layar tujuan agar ikon aktif menyala.
-          // Dock dipakai oleh home_screen, history_screen, dan profile_screen (cek parameter activeTab di masing-masing).
+          // Dock dipakai oleh home_screen, history_screen, favorite_screen, dan profile_screen (cek parameter activeTab di masing-masing).
           // ============================================================================
           // Center: Favorit (rounded-2xl)
-          GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoriteScreen())),
-            child: Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.0),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.favorite_border, size: 24, color: Color.fromARGB(255, 169, 169, 169)),
-            ),
-          ),
+          _buildIcon(context, activeTab == DockTab.favorite ? Icons.favorite : Icons.favorite_border, DockTab.favorite, () {
+            if (activeTab != DockTab.favorite) {
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const FavoriteScreen()));
+            }
+          }),
           _buildIcon(context, Icons.person_outline, DockTab.profile, () {
             if (activeTab != DockTab.profile) {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
@@ -80,7 +75,7 @@ class BottomDockNavigation extends StatelessWidget {
       child: Container(
         width: 48, height: 48,
         decoration: BoxDecoration(
-          // ─── WARNA TAB AKTIF DI DOCK NAVIGASI ───
+          // ─── [USER] WARNA TAB AKTIF DI DOCK NAVIGASI ───
           color: isActive ? const Color(0xFFD67B5A) : Colors.transparent, // <-- Ubah warna Lingkaran Tab Aktif (Terracotta Oranye)
           shape: BoxShape.circle,
         ),

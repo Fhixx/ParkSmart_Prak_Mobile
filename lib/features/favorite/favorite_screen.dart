@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
@@ -7,6 +8,7 @@ import '../parking/parking_detail_screen.dart';
 import 'backend/favorite_backend.dart';
 import '../profile/backend/vehicle_backend.dart';
 import '../../core/services/app_image_cache_service.dart';
+import '../../widgets/bottom_dock_navigation.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
@@ -96,7 +98,9 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
             ),
             centerTitle: true,
           ),
-          body: Column(
+          body: Stack(
+            children: [
+          Column(
             children: [
               // Search Bar
               Padding(
@@ -184,7 +188,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                             ),
                           )
                         : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: EdgeInsets.fromLTRB(16, 8, 16, math.max(MediaQuery.of(context).padding.bottom + 12, 24) + 76),
                             itemCount: displayedFavorites.length,
                             itemBuilder: (context, index) {
                               final loc = displayedFavorites[index];
@@ -334,6 +338,17 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                               );
                             },
                           ),
+              ),
+            ],
+          ),
+              // Dock navigasi bawah (sama seperti Home, Riwayat, dan Profil)
+              Positioned(
+                bottom: math.max(MediaQuery.of(context).padding.bottom + 12, 24),
+                left: 20,
+                right: 20,
+                child: const Center(
+                  child: BottomDockNavigation(activeTab: DockTab.favorite),
+                ),
               ),
             ],
           ),
